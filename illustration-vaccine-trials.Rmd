@@ -1,0 +1,119 @@
+---
+title: "Application of PTE methods to a Hypothetical Vaccine Trial"
+author: "Florian Stijven"
+date: '`r Sys.Date()`'
+output: pdf_document
+---
+
+# Data Generating Model
+
+```{r}
+library(tidyverse)
+library(mediation)
+```
+
+
+```{r}
+# Specification of general parameters.
+
+# Sample size
+n = 2e4
+```
+
+## Evaluation Trial
+
+
+```{r}
+# Simulation of Baseline Covariates and Treatment Assignment.
+Z = c(rep(0L, n %/% 2), rep(1L, n - n %/% 2))
+age = rnorm(n = n, mean = 35, sd = 7)
+health = rnorm(n = n, mean = 5, sd = 5)
+eval_trial_tbl = tibble(
+  Z = Z, 
+  age = age,
+  health = health
+)
+```
+
+```{r}
+# Generation of surrogate endpoints.
+eval_trial_tbl = eval_trial_tbl %>%
+  mutate(S = 1.5 * Z - 0.05 * (age - 45) + 0.15 * health + rnorm(n = n))
+```
+
+```{r}
+# Generation of the true endpoint.
+eval_trial_tbl = eval_trial_tbl %>%
+  mutate(eta = 1 + 0.1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
+         infection_free = rbinom(n = n, size = 1, prob = 1 / (1 + exp(-1 * eta))))
+```
+
+```{r}
+eval_trial_tbl %>%
+  group_by(Z) %>%
+  summarize(mean(infection_free))
+eval_trial_tbl %>%
+  ggplot(aes(x = S, color = as.factor(Z))) +
+  geom_density()
+```
+
+# Computation of PTE
+
+```{r}
+# Model for surrogate endpoint.
+surrogate_model = lm(S~Z + age + health, data = eval_trial_tbl)
+surrogate_marg_model = lm(S~Z, data = eval_trial_tbl)
+# Model for True endpoint.
+true_endpoint_model = glm(infection_free ~ Z + S + age + health,
+                          data = eval_trial_tbl,
+                          family = binomial())
+true_endpoint_marg_model = glm(infection_free ~ Z + S, data = eval_trial_tbl,
+                               family = binomial())
+```
+
+```{r}
+PTE_WT = mediate(
+  model.m = surrogate_marg_model,
+  model.y = true_endpoint_marg_model,
+  sims = 1e3,
+  treat = "Z",
+  mediator = "S"
+)
+summary(PTE_WT)
+
+PTE_WT_X = mediate(
+  model.m = surrogate_model,
+  model.y = true_endpoint_model,
+  sims = 1e3,
+  treat = "Z",
+  mediator = "S"
+)
+summary(PTE_WT_X)
+```
+
+```{r}
+eval_trial_tbl  = eval_trial_tbl %>%
+  mutate(S_tilde = predict(true_endpoint_model, newdata = eval_trial_tbl %>%
+                             mutate(Z = 1), type = "response"))
+eval_trial_tbl %>%
+  group_by(Z) %>%
+  summarize(predicted_proportion = mean(S_tilde), proportion = mean(infection_free)) %>%
+  pivot_longer(cols = 2:3) %>%
+  pivot_wider(names_from = "Z", values_from = "value") %>%
+  mutate(Delta = `1` - `0`)
+```
+
+
+
+```{r}
+eval_trial_tbl %>%
+  ggplot(aes(x = S, y = infection_free, color = factor(Z))) +
+  geom_smooth()
+```
+
+
+# Application Trials
+
+## Data Generation
+
+## Prediction of Treatment Effects
