@@ -5,6 +5,53 @@ date: '`r Sys.Date()`'
 output: pdf_document
 ---
 
+
+# Introduction
+
+In this document, the analysis of a set of hypothetical vaccine trials is
+described. This document supplements the review of the proportion of treatment
+effect explained (PTE) as a measure of surrogacy. All data in this document are
+hypothetical, but meant to be realistic. The goal of this document is **not** to
+show how different versions of the PTE are estimated in practice. Instead, the
+goal is to illustrate three conceptual points related to the PTE:
+
+1. The PTE can be interpreted in a variety of ways. However, for the PTE to have
+a relevant interpretation, unverifiable assumptions are **always** needed. 
+2. The PTE is often defined independent of baseline covariates. Without taking
+such baseline covariates into account, the PTE can often not be interpreted in
+the desired manner.
+3. The validity of the non-causal interpretation of the PTE is inherently linked
+to the potential application trials. The validity of the causal interpretation 
+does not involve assumptions regarding potential application trials.
+
+In this hypothetical scenario, we have data from a single evaluation trial in
+which the efficacy of a vaccine is evaluated. In this trial, the occurrence of
+infection in the 120 days after vaccination is the primary endpoint, i.e., the
+true endpoint, $T$. At the same time, the antibody levels 2 weeks after
+vaccination have been measured. This serves as a potential surrogate endpoint,
+$S$.
+
+Independent of the evaluation trial, we consider two potential application
+trials. These are trials in which the results of the previous surrogacy analysis
+are used to replace the true endpoint with the surrogate endpoint. The
+population in these two application trials differs from the evaluation trial's
+population. In addition, the vaccine in the second application trial has a
+different mechanism of action. These differences are meant to emulate a
+real-life setting where, indeed, there may be important differences between
+trials for the some disease. This also puts the spotlight on the reasoning
+required for justifying the use of a potential surrogate endpoint in a new
+trial, and the potential pitfalls.
+
+The remainder of the document is structured as follows. First, the data
+generating model underlying the evaluation trial is explained. For this trial,
+two versions of the PTE are then computed and interpreted in a causal framework.
+Next, the data generating model underlying the two potential application trials
+is explained. The results of the surrogacy evaluation in the evaluation trial
+are then used to predict the treatment effects in these two application trials
+*using only surrogacy information*. The accuracy of these predictions is then
+related to (violations of) assumptions and the PTE's that were estimated in the
+evaluation trial.
+
 # Data Generating Model
 
 ```{r}
