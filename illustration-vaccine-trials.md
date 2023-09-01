@@ -1,7 +1,7 @@
 ---
 title: "Application of PTE methods to a Hypothetical Vaccine Trial"
 author: "Florian Stijven"
-date: '`r Sys.Date()`'
+date: '2023-09-01'
 output: 
   pdf_document:
     keep_md: TRUE
@@ -54,7 +54,8 @@ are then used to predict the treatment effects in these two application trials
 related to (violations of) assumptions and the PTE's that were estimated in the
 evaluation trial.
 
-```{r, message=FALSE, warning=FALSE}
+
+```r
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 library(tidyverse)
 library(mediation)
@@ -68,7 +69,8 @@ set.seed(1)
 
 The data generating model is based on the following selection diagram.
 
-```{r}
+
+```r
 coords = list(
   x = c(Z = 0, S = 0.5, `T` = 1, U = 1.25, A = 0.75),
   y = c(Z = 0, S = 0.75, `T` = 0, U = 0.75, A = 1.5)
@@ -86,6 +88,8 @@ vaccine_trial_dag = ggdag::dagify(
 ggdag::ggdag(vaccine_trial_dag) +
   theme_void()
 ```
+
+![](illustration-vaccine-trials_files/figure-latex/unnamed-chunk-2-1.pdf)<!-- --> 
 
 The nodes in the above selection diagram correspond to the following variables:
 
@@ -116,7 +120,8 @@ the data in the evaluation trial.
 The treatment is randomized in a 1:1 fashion such that there are 10.000 patients 
 in each treatment arm.
 
-```{r}
+
+```r
 # Sample size per treatment arm is fixed.
 n = 1e4
 # Construct integer vector where the first n elements are zero, and the next n
@@ -137,7 +142,8 @@ evaluation trial as follows.
 Because of randomization, these two variables are independent of the treatment
 variable.
 
-```{r}
+
+```r
 # Generate observations for the baseline covariates.
 age = rnorm(n = 2 * n, mean = 35, sd = 7)
 health = rnorm(n = 2 * n, mean = 5, sd = 5)
@@ -158,7 +164,8 @@ risk of infection by increasing the patient's neutralizing antibody levels.
 In the evaluation trial, $S | Z, U, A = 1$ is a normal distribution with unit variance
 and mean $E(S | Z, U, A = 1) = 1.5 \cdot Z - 0.05 \cdot (U1 - 45) + 0.15 \cdot U_2$.
 
-```{r}
+
+```r
 # The surrogate endpoint is simulated taking into account the baseline
 # covariates and treatment assignment.
 eval_trial_tbl = eval_trial_tbl %>%
@@ -172,7 +179,8 @@ levels, and the baseline covariates. Its distribution is completely determined b
 the mean, which depends on the mentioned variables in the following way,
 
 $$E(T|Z, S, U) = expit(1 + 0.1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (U_1 - 45) + 0.1 \cdot U_2).$$ 
-```{r}
+
+```r
 # The true endpoint is simulated in two steps. First, the mean as function of
 # covariates is computed. Given this conditional mean, the true endpoint is sampled
 # from a bernouilli distribution.
@@ -181,7 +189,8 @@ eval_trial_tbl = eval_trial_tbl %>%
          infection_free = rbinom(n = 2 * n, size = 1, prob = 1 / (1 + exp(-1 * eta))))
 ```
 
-```{r}
+
+```r
 # Add more informative variable names and labels.
 eval_trial_tbl = eval_trial_tbl %>%
   mutate(Treatment = factor(Z, levels = 0:1, labels = c("Control", "Experimental")))
@@ -203,18 +212,19 @@ frameworks discussed in the paper.
 
 We start by computing the marginal treatment effect. 
 
-```{r}
+
+```r
 eval_trial_prop0 = mean(eval_trial_tbl$infection_free[eval_trial_tbl$Z == 0])
 eval_trial_prop1 = mean(eval_trial_tbl$infection_free[eval_trial_tbl$Z == 1])
 ```
 
 
 The proportions infection-free
-in the control and experimental groups are, respectively, `r round(eval_trial_prop0, 3)` and 
-`r round(eval_trial_prop1, 3)`. The risk difference is thus `r round(eval_trial_prop1 - eval_trial_prop0, 3)`.
+in the control and experimental groups are, respectively, 0.862 and 
+0.932. The risk difference is thus 0.07.
 In this context, the treatment effect is often summarized in the vaccine efficacy (VE),
 $VE = 1 - RR$ where $RR$ is the relative risk of infection in the experimental vs
-control group. The VE in this trial is `r round( 1 - (1 - eval_trial_prop1) / (1 - eval_trial_prop0), 3)`.
+control group. The VE in this trial is 0.509.
 
 In what follows, $PTE_{WT}$ is defined as $\frac{\Delta - \Delta_S}{\Delta}$
 where 
@@ -230,7 +240,8 @@ $$\Delta_S = \int E(T_1 | S_1 = s, A = 1) - E(T_0 | S_0 = s, A = 1) \, d F_{S_0 
 where the weights depend on the distribution of the surrogate in the control group.
 These two regression functions are plotted next.
 
-```{r, fig.cap="Regression function of the regression of the true endpoint on the surrogate endpoint in each treatment group separetely. These regression functions are estimated by local regression. The corresponding density estimates of the distribution of the surrogate endpoint are superimposed on this plot."}
+
+```r
 eval_trial_tbl %>%
   ggplot() +
   geom_smooth(aes(x = S, y = infection_free, color = Treatment)) + 
@@ -238,6 +249,8 @@ eval_trial_tbl %>%
   xlim(c(-2.5, 7.5)) + 
   theme_bw()
 ```
+
+![Regression function of the regression of the true endpoint on the surrogate endpoint in each treatment group separetely. These regression functions are estimated by local regression. The corresponding density estimates of the distribution of the surrogate endpoint are superimposed on this plot.](illustration-vaccine-trials_files/figure-latex/unnamed-chunk-9-1.pdf) 
 
 These regression functions clearly differ between the treatment groups. Indeed,
 the regression function in the control group is larger than in the experimental
@@ -276,7 +289,8 @@ When we include the baseline covariates in these models, they are correctly spec
 However, the logistic regression model is misspecified when we do not include
 the baseline covariates.
 
-```{r}
+
+```r
 # Fit the models that do not include the baseline covariates. 
 surrogate_marg_model = lm(S~Z, data = eval_trial_tbl)
 true_endpoint_marg_model = glm(infection_free ~ Z + S, data = eval_trial_tbl,
@@ -319,7 +333,8 @@ of `ACME (treated)` and `Total effect`.
   * This is a consistent estimator for $PTE_{WT}^X$ when baseline covariates 
   have been included.
 
-```{r}
+
+```r
 PTE_WT = mediate(
   # Model for the mediator, i.e., the surrogate.
   model.m = surrogate_marg_model,
@@ -335,7 +350,34 @@ PTE_WT = mediate(
 summary(PTE_WT)
 ```
 
-```{r}
+```
+## 
+## Causal Mediation Analysis 
+## 
+## Quasi-Bayesian Confidence Intervals
+## 
+##                          Estimate 95% CI Lower 95% CI Upper p-value    
+## ACME (control)             0.0838       0.0788         0.09  <2e-16 ***
+## ACME (treated)             0.1011       0.0929         0.11  <2e-16 ***
+## ADE (control)             -0.0323      -0.0448        -0.02  <2e-16 ***
+## ADE (treated)             -0.0150      -0.0206        -0.01  <2e-16 ***
+## Total Effect               0.0688       0.0605         0.08  <2e-16 ***
+## Prop. Mediated (control)   1.2176       1.1210         1.34  <2e-16 ***
+## Prop. Mediated (treated)   1.4700       1.2605         1.72  <2e-16 ***
+## ACME (average)             0.0924       0.0864         0.10  <2e-16 ***
+## ADE (average)             -0.0237      -0.0326        -0.01  <2e-16 ***
+## Prop. Mediated (average)   1.3438       1.1910         1.53  <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Sample Size Used: 20000 
+## 
+## 
+## Simulations: 1000
+```
+
+
+```r
 PTE_WT_X = mediate(
   model.m = surrogate_model,
   model.y = true_endpoint_model,
@@ -346,16 +388,41 @@ PTE_WT_X = mediate(
 summary(PTE_WT_X)
 ```
 
+```
+## 
+## Causal Mediation Analysis 
+## 
+## Quasi-Bayesian Confidence Intervals
+## 
+##                          Estimate 95% CI Lower 95% CI Upper p-value    
+## ACME (control)            0.06561      0.06077         0.07  <2e-16 ***
+## ACME (treated)            0.06194      0.05429         0.07  <2e-16 ***
+## ADE (control)             0.00903     -0.00376         0.02    0.16    
+## ADE (treated)             0.00536     -0.00218         0.01    0.16    
+## Total Effect              0.07097      0.06294         0.08  <2e-16 ***
+## Prop. Mediated (control)  0.92432      0.83231         1.03  <2e-16 ***
+## Prop. Mediated (treated)  0.87046      0.72259         1.06  <2e-16 ***
+## ACME (average)            0.06378      0.05769         0.07  <2e-16 ***
+## ADE (average)             0.00719     -0.00297         0.02    0.16    
+## Prop. Mediated (average)  0.89739      0.77676         1.05  <2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Sample Size Used: 20000 
+## 
+## 
+## Simulations: 1000
+```
+
 ### Interpretation of Estimates
 
 The results are summarized in the following table.
 
-```{r}
-
-```
 
 
-```{r}
+
+
+```r
 eval_trial_tbl  = eval_trial_tbl %>%
   mutate(S_tilde = predict(true_endpoint_model, newdata = eval_trial_tbl %>%
                              mutate(Z = 1), type = "response"))
@@ -367,11 +434,17 @@ eval_trial_tbl %>%
   mutate(Delta = `1` - `0`)
 ```
 
-
-
-```{r}
-
 ```
+## # A tibble: 2 x 4
+##   name                   `0`   `1`  Delta
+##   <chr>                <dbl> <dbl>  <dbl>
+## 1 predicted_proportion 0.871 0.932 0.0610
+## 2 proportion           0.862 0.932 0.0700
+```
+
+
+
+
 
 
 # Application Trials
