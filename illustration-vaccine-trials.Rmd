@@ -3,15 +3,15 @@ title: "Application of PTE methods to a Hypothetical Vaccine Trial"
 author: "Florian Stijven"
 date: '`r Sys.Date()`'
 output: 
-  pdf_document:
-    keep_md: TRUE
+  bookdown::pdf_document2:
+  bookdown::github_document2:
 ---
 
 
 # Introduction
 
 In this document, the analysis of a set of hypothetical vaccine trials is
-described. This document supplements the review of the proportion of treatment
+described. This document supplements the review paper of the proportion of treatment
 effect explained (PTE) as a measure of surrogacy. All data in this document are
 hypothetical, but meant to be realistic. The goal of this document is **not** to
 show how different versions of the PTE are estimated in practice. Instead, the
@@ -28,25 +28,25 @@ does not involve assumptions regarding potential application trials.
 
 In this hypothetical scenario, we have data from a single evaluation trial in
 which the efficacy of a vaccine is evaluated. In this trial, the occurrence of
-infection in the 120 days after vaccination is the primary endpoint, i.e., the
-true endpoint, $T$. At the same time, the antibody levels 2 weeks after
-vaccination have been measured. This serves as a potential surrogate endpoint,
+infection in the year after vaccination is the primary endpoint, i.e., the
+true endpoint, $T$. At the same time, the neutralizing antibody level 2 weeks after
+vaccination has been measured. This serves as a potential surrogate endpoint,
 $S$.
 
 Independent of the evaluation trial, we consider two potential application
 trials. These are trials in which the results of the previous surrogacy analysis
 are used to replace the true endpoint with the surrogate endpoint. The
 population in these two application trials differs from the evaluation trial's
-population. In addition, the vaccine in the second application trial has a
-different mechanism of action. These differences are meant to emulate a
-real-life setting where, indeed, there may be important differences between
-trials for the some disease. This also puts the spotlight on the reasoning
-required for justifying the use of a potential surrogate endpoint in a new
-trial, and the potential pitfalls.
+population in terms of age and general health at baseline. In addition, the
+vaccine in the second application trial has a different mechanism of action.
+These differences are meant to emulate a real-life setting where, indeed, there
+may be important differences between trials for the same disease. This also puts
+the spotlight on the reasoning required for justifying the use of a potential
+surrogate endpoint in a new trial, and the potential pitfalls.
 
 The remainder of the document is structured as follows. First, the data
 generating model underlying the evaluation trial is explained. For this trial,
-two versions of the PTE are then computed and interpreted in a causal framework.
+two versions of the PTE are then estimated and interpreted in a causal framework.
 Next, the data generating model underlying the two potential application trials
 is explained. The results of the surrogacy evaluation in the evaluation trial
 are then used to predict the treatment effects in these two application trials
@@ -54,9 +54,15 @@ are then used to predict the treatment effects in these two application trials
 related to (violations of) assumptions and the PTE's that were estimated in the
 evaluation trial.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+# The tidyverse packages are loaded for data manipulation and plotting.
 library(tidyverse)
+# The mediation package is loaded for computing the PTE and related quantities. 
 library(mediation)
 # Set a seed for reproducibility.
 set.seed(1)
@@ -66,50 +72,50 @@ set.seed(1)
 
 ## Data Generating Model
 
-The data generating model is based on the following selection diagram.
+The data generating model is based on the selection diagram in Figure
+\@ref(fig:selection-diagram). The nodes in that diagram correspond to the
+following variables:
 
-```{r}
+* **Z**. This is the treatment indicator where $Z = 0$ corresponds to the control 
+vaccine and $Z = 1$ corresponds to the experimental vaccine. Treatment is randomized
+in this scenario. Therefore, there are no arrows into $Z$.
+* **S**. This is the surrogate endpoint, i.e., the neutralizing antibody level.
+Treatment has a causal effect on $S$, and $S$ has a causal effect on the true
+endpoint. Therefore, the neutralizing antibody level is a mediator for the
+effect of vaccination.
+* **T**. This is the true endpoint where $T = 0$ corresponds to infection in the year following vaccination and $T = 1$ to no infection in this period.
+* **X**. This represents the confounding variables for the causal effect of the
+neutralizing antibody level on the infection outcome. In this data generating model, 
+there are only 2 confounding variables. These variables are measured at baseline. 
+  * Age, $X_1$. Older patients tend to have a weaker immune response to vaccination, and
+  are more susceptible to infection.
+  * General health at baseline, $X_2$. Patients in better general health tend to have a 
+  stronger immune response to vaccination, and are less susceptible to infection.
+* **A**. This is the trial indicator where $A = 1$ corresponds to the evaluation
+trial and $A = 0$ corresponds to the application trial. 
+
+```{r selection-diagram, echo=FALSE, fig.cap="Selection diagram underlying the data generating model. The evaluation and first application trial are consistent with this diagram, but the second application trial not.", out.width='50%'}
 coords = list(
-  x = c(Z = 0, S = 0.5, `T` = 1, U = 1.25, A = 0.75),
-  y = c(Z = 0, S = 0.75, `T` = 0, U = 0.75, A = 1.5)
+  x = c(Z = 0, S = 0.5, `T` = 1, X = 1.25, A = 0.75),
+  y = c(Z = 0, S = 0.75, `T` = 0, X = 0.75, A = 1.5)
 )
 vaccine_trial_dag = ggdag::dagify(
   S ~ Z,
-  S ~ U,
+  S ~ X,
   S ~ A,
   `T` ~ S,
-  `T` ~ U,
+  `T` ~ X,
   `T` ~ Z,
-  U ~ A,
+  X ~ A,
   coords = coords
 )
 ggdag::ggdag(vaccine_trial_dag) +
   theme_void()
 ```
 
-The nodes in the above selection diagram correspond to the following variables:
-
-* **Z**. This is the treatment indicator where $Z = 0$ corresponds to the control 
-vaccine and $Z = 1$ corresponds to the experimental vaccine. Treatment is randomized
-in this scenario. Therefore, there are no arrows into $Z$.
-* **S**. This is the surrogate endpoint, i.e., the neutralizing antibody level. 
-This variable *causally* affects the true endpoint, i.e., it is a mediator for
-the treatment effect.
-* **T**. This is the true endpoint where $T = 0$ corresponds to infection in 
-120 day-period following vaccination and $T = 1$ to no infection in this period.
-* **U**. This represents the confounding variables for the causal effect of 
-neutralizing antibody levels on the infection outcome. In this data generating model, 
-there are only 2 confounding variables. These variables are measured at baseline. 
-  * Age, $U_1$. Older patients tend to have a weaker immune response to vaccination, and
-  are more susceptible for infection.
-  * General health at baseline, $U_2$. Patients in better general health tend to have a 
-  stronger immune response to vaccination, and are less susceptible for infection.
-* **A**. This is the trial indicator where $A = 1$ corresponds to the evaluation
-trial and $A = 0$ corresponds to the application trial. 
-
-We now discuss the distribution of these variables in the evaluation trial in turn.
-Concomitant with these distribution, we provide the code that is used to generate
-the data in the evaluation trial.
+We now discuss the distributions of these variables in the evaluation trial.
+Concomitant with these distributions, we provide the code that is used to
+generate the data in the evaluation trial.
 
 ### Treatment 
 
@@ -130,19 +136,21 @@ As mentioned previously, age and general health are baseline covariates that
 confound the causal effect of $S$ on $T$. These variables are distributed in the
 evaluation trial as follows.
 
-* Age, $U_1 | A = 1 \sim N(35, 7^2)$. This population is thus quite young. 
-* General health, $U_2 | A = 1 \sim N(5, 5^2)$. This population has quite good general health
+* Age, $X_1 | A = 1 \sim N(35, 7^2)$. This population is thus quite young (in 
+comparison with the application trials, see further). 
+* General health, $X_2 | A = 1 \sim N(5, 5^2)$. This population has a good general health
 (in comparison with the application trials, see further).
 
 Because of randomization, these two variables are independent of the treatment
-variable.
+variable. However, the distribution of these variables changes in the application
+trials.
 
 ```{r}
 # Generate observations for the baseline covariates.
 age = rnorm(n = 2 * n, mean = 35, sd = 7)
 health = rnorm(n = 2 * n, mean = 5, sd = 5)
 
-# Combine the treatment vector and baseline covariates into a tibble. 
+# Combine the treatment vector and the baseline covariates into a tibble. 
 eval_trial_tbl = tibble(
   Z = Z, 
   age = age,
@@ -155,12 +163,12 @@ eval_trial_tbl = tibble(
 As mentioned before, the vaccine in the evaluation trial mainly exerts its effect
 through inducing an antibody response. In other words, the vaccine reduces the
 risk of infection by increasing the patient's neutralizing antibody levels. 
-In the evaluation trial, $S | Z, U, A = 1$ is a normal distribution with unit variance
-and mean $E(S | Z, U, A = 1) = 1.5 \cdot Z - 0.05 \cdot (U1 - 45) + 0.15 \cdot U_2$.
+In the evaluation trial, $S | Z, X, A = 1$ is a normal distribution with unit variance
+and mean $E(S | Z, X, A = 1) = 1.5 \cdot Z - 0.05 \cdot (X_1 - 45) + 0.15 \cdot X_2$.
 
 ```{r}
 # The surrogate endpoint is simulated taking into account the baseline
-# covariates and treatment assignment.
+# covariates and the treatment assignment.
 eval_trial_tbl = eval_trial_tbl %>%
   mutate(S = 1.5 * Z - 0.05 * (age - 45) + 0.15 * health + rnorm(n = 2 * n))
 ```
@@ -171,20 +179,30 @@ The true endpoint is a binary endpoint that depends on the treatment, the antibo
 levels, and the baseline covariates. Its distribution is completely determined by
 the mean, which depends on the mentioned variables in the following way,
 
-$$E(T|Z, S, U) = expit(1 + 0.1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (U_1 - 45) + 0.1 \cdot U_2).$$ 
+$$E(T|Z, S, U, A = 1) = expit(1 + 0.1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2).$$ 
 ```{r}
-# The true endpoint is simulated in two steps. First, the mean as function of
+# The true endpoint is simulated in two steps. First, the mean as function of the
 # covariates is computed. Given this conditional mean, the true endpoint is sampled
-# from a bernouilli distribution.
+# from a Bernoulli distribution.
 eval_trial_tbl = eval_trial_tbl %>%
-  mutate(eta = 0.8 + 0.1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
-         infection_free = rbinom(n = 2 * n, size = 1, prob = 1 / (1 + exp(-1 * eta))))
+  mutate(
+    eta = 0.8 + 0.1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
+    infection_free = rbinom(
+      n = 2 * n,
+      size = 1,
+      prob = 1 / (1 + exp(-1 * eta))
+    )
+  )
 ```
 
 ```{r}
 # Add more informative variable names and labels.
 eval_trial_tbl = eval_trial_tbl %>%
-  mutate(Treatment = factor(Z, levels = 0:1, labels = c("Control", "Experimental")))
+  mutate(Treatment = factor(
+    Z,
+    levels = 0:1,
+    labels = c("Control", "Experimental")
+  ))
 ```
 
 
@@ -192,19 +210,21 @@ eval_trial_tbl = eval_trial_tbl %>%
 ## Surrogacy Analysis 
 
 In this subsection, we first do several simple analyses of the evaluation trial
-that will help us to interpret the results regarding the PTE. The key concepts
-from the paper are also repeated for completeness. Next, two versions of the PTE
-are estimated for these data: (i) the "usual" PTE that ignores baseline
-covariates, $PTE_{WT}$, and (ii) the PTE that does take into account baseline
-covariates, $PTE_{WT}^X$. These estimates are then interpreted in the causal 
-frameworks discussed in the paper.
+that will help us to interpret the results regarding the PTE. Key concepts
+regarding the PTE in the review paper are also repeated for completeness. Next,
+two versions of the PTE are estimated for these data: (i) the "usual" PTE that
+ignores baseline covariates, $PTE_{WT}$, and (ii) the PTE that does take into
+account baseline covariates, $PTE_{WT}^X$. These estimates are then interpreted
+in the causal frameworks discussed in the paper.
 
 ### Preliminaries
 
 We start by computing the marginal treatment effect. 
 
 ```{r}
+# Proportion infection-free after 1 year in the control group.
 eval_trial_prop0 = mean(eval_trial_tbl$infection_free[eval_trial_tbl$Z == 0])
+# Proportion infection-free after 1 year in the experimental group.
 eval_trial_prop1 = mean(eval_trial_tbl$infection_free[eval_trial_tbl$Z == 1])
 ```
 
@@ -220,35 +240,44 @@ In what follows, $PTE_{WT}$ is defined as $\frac{\Delta - \Delta_S}{\Delta}$
 where 
 $$\Delta = E(T_1 - T_0 | A = 1) $$ 
 and
-$$\Delta_S = \int E(T_1 | S_1 = s, A = 1) \, d F_{S_0 | A}(s | a = 1) - \int E(T_0 | S_0 = s, A = 1) \, d F_{S_0 | A}(s | a = 1).$$
-In light of the general definition used throughout the paper, we thus have that 
-$h(u) = u$ and $g(\cdot)$ is the expectation. These developments illustrate that 
-$PTE_{WT}$ will be close to $1$ if the regression functions of $T$ on $S$ are similar
-in both treatment groups. Indeed, we can rewrite $\Delta_S$ as the weighted difference
-of of this two regression functions,
+\begin{equation} 
+\Delta_S = \int E(T_1 | S_1 = s, A = 1) \, d F_{S_0 | A}(s | a = 1) - \int E(T_0 | S_0 = s, A = 1) \, d F_{S_0 | A}(s | a = 1).
+  (\#eq:residual-treatment-effect)
+\end{equation} 
+The above two quantities are termed the marginal (or total) treatment effect,
+and the residual treatment effect, respectively. In light of the general
+definition used throughout the paper, we thus have that $h(u) = u$ and
+$g(\cdot)$ is the expectation.
+
+From the definition of $PTE_{WT}$, it follows that $PTE_{WT}$ is close to 1 when
+the residual treatment effect, $\Delta_S$, is close to 0. From the definition of
+$\Delta_S$ in \@ref(eq:residual-treatment-effect) follows that $\Delta_S$ is
+close to 0 when the regression functions of $T$ on $S$ are similar in both
+treatment groups. Indeed, we can rewrite $\Delta_S$ as the weighted difference
+of these two regression functions,
 $$\Delta_S = \int E(T_1 | S_1 = s, A = 1) - E(T_0 | S_0 = s, A = 1) \, d F_{S_0 | A}(s | a = 1),$$
 where the weights depend on the distribution of the surrogate in the control group.
-These two regression functions are plotted next.
+These two regression functions are plotted next in Figure \@ref(fig:regression-functions-smooth).
 
-```{r, fig.cap="Regression function of the regression of the true endpoint on the surrogate endpoint in each treatment group separetely. These regression functions are estimated by local regression. The corresponding density estimates of the distribution of the surrogate endpoint are superimposed on this plot."}
+```{r regression-functions-smooth, fig.cap="Regression function of the regression of the true endpoint on the surrogate endpoint in each treatment group separately. These regression functions are estimated by local regression. The corresponding density estimates of the distribution of the surrogate endpoint are superimposed on this plot.", out.width='70%'}
 eval_trial_tbl %>%
   ggplot() +
-  geom_smooth(aes(x = S, y = infection_free, color = Treatment)) + 
+  geom_smooth(aes(x = S, y = infection_free, color = Treatment), se = FALSE) + 
   geom_density(aes(x = S, color = Treatment)) +
   xlim(c(-2.5, 7.5)) + 
   theme_bw()
 ```
 
-These regression functions clearly differ between the treatment groups. Indeed,
+These regression functions differ between the treatment groups. Indeed,
 the regression function in the control group is larger than in the experimental
 group for all values of $S$. Hence, $PTE_{WT}$ will be larger than 1.
 
 We can also include baseline covariates in the definition of the proportion explained.
-This leads to $PTE_{WT}^X = \frac{\Delta - E\left\{\Delta_S(U)\right\}}{\Delta}$ where
-$$\Delta_S(u) = \int E(T_1 | S_1 = s, U = u, A = 1) - E(T_0 | S_0 = s, U = u,  A = 1) \, d F_{S_0 | A}(s | a = 1).$$
-When $U$ contains all confounders, then $E\left\{ \Delta_S(U) \right\}$
-corresponds to the interventional direct effect and $\Delta - E\left\{
-\Delta_S(U) \right\}$ to the interventional indirect effect. Under the additional
+This leads to $PTE_{WT}^X = \frac{\Delta - E\left\{\Delta_S(X)\right\}}{\Delta}$ where
+$$\Delta_S(x) = \int E(T_1 | S_1 = s, X = x, A = 1) - E(T_0 | S_0 = s, X = x,  A = 1) \, d F_{S_0 | A}(s | a = 1).$$
+When $X$ contains all confounders, then $E\left\{ \Delta_S(X) \right\}$
+corresponds to the interventional direct effect and
+$\Delta - E\left\{ \Delta_S(X) \right\}$ to the interventional indirect effect. Under the additional
 cross-world independence assumption, these effects correspond to their natural
 counterparts. The ratio of the interventional/natural indirect effect and the
 total effect is classically termed the proportion mediated. As for the PTE, this
@@ -257,67 +286,74 @@ is actually is misnomer because it is not a proportion.
 ### Estimation of PTE
 
 As explained in Appendix E of the paper, $PTE_{WT}$ can be estimated with
-existing software for causal mediation analysis. In this analysis, we use the
-`mediate()` function from the `mediation` package for this purpose. For a conventional
-mediation analysis, this function relies on two regression models.
+existing software for causal mediation analysis. In this document, we use the
+`mediate()` function from the `mediation` package for this purpose. For a
+conventional mediation analysis, this function relies on two regression models.
 
-1. A regression model for the mediator given the treatment and
-the confounders measured at baseline.
-2. A regression model for the true endpoint given the treatment, the mediator and 
-the confounders measured at baseline.
+1. A regression model for the mediator given the treatment and the confounders
+measured at baseline.
+2. A regression model for the true endpoint given the treatment, the mediator
+and the confounders measured at baseline.
 
 For estimating the $PTE_{WT}$, we replace the mediator with the surrogate, and
 we do not include baseline covariates. For estimating the $PTE_{WT}^X$, we do
 include baseline covariates.
 
-The corresponding models are fitted in turn next. For the surrogate, we choose
-a linear regression model. For the true endpoint, we choose a logistic regression model.
-When we include the baseline covariates in these models, they are correctly specified. 
-However, the logistic regression model is misspecified when we do not include
-the baseline covariates.
+The corresponding models are fitted in turn next. For the surrogate, we choose a
+linear regression model. For the true endpoint, we choose a logistic regression
+model. When we include the baseline covariates in these models, they are
+correctly specified. However, the logistic regression model is misspecified when
+we do not include the baseline covariates.
 
 ```{r}
-# Fit the models that do not include the baseline covariates. 
-surrogate_marg_model = lm(S~Z, data = eval_trial_tbl)
+# Fit the models that do not include the baseline covariates.
+surrogate_marg_model = lm(S ~ Z, data = eval_trial_tbl)
 true_endpoint_marg_model = glm(infection_free ~ Z + S, data = eval_trial_tbl,
                                family = binomial())
 # Fit the models that include the baseline covariates.
-surrogate_model = lm(S~Z + age + health, data = eval_trial_tbl)
+surrogate_model = lm(S ~ Z + age + health, data = eval_trial_tbl)
 true_endpoint_model = glm(infection_free ~ Z + S + age + health,
                           data = eval_trial_tbl,
                           family = binomial())
 ```
 
-We start by estimating $PTE_{WT}$. For completeness, we call the summary method
-on the object returned by `mediate()`. This method returns numerous estimates, which 
-are discussed in turn. We only focus only focus on the estimates with `(treated)`
-in their name. These estimates correspond to components of $PTE_{WT}$ as defined
-previously. If we switch both treatment arms, then the estimates with `(control)`
-in their name are obtained.
+We can now estimate $PTE_{WT}$ and $PTE_{WT}^X$. This is done in the two next
+code chunks. For completeness, we call the summary method on the object returned
+by `mediate()`. This method returns numerous estimates, which are discussed in
+turn. We only focus on the estimates with `(treated)` in their name. These
+estimates correspond to components of $PTE_{WT}$ as defined previously. If we
+switch both treatment arms, then the estimates with `(control)` in their name
+are obtained.
 
-* Average causal mediation effect, `ACME (treated)`. This is often called the indirect effect.
-Because we have not included any baseline covariates, the estimator in
+* Average causal mediation effect, `ACME (treated)`. This is often termed the indirect effect.
+The estimator in
 `mediate()` is only consistent for the indirect effect if all confounders are
 included in the models in `mediate()`. 
   * This estimator is in any case consistent for $\Delta - \Delta_S$ in the 
-  definition of $PTE_{WT}$ when no baseline covariates have been included.
+  definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
+  are correctly specified.
   * This estimator is in any case consistent for $\Delta - E\left\{\Delta_S(U) \right\}$ 
-  in the definition of $PTE_{WT}^X$ when baseline covariates have been included.
+  in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
+  are correctly specified.
 * Average direct effect, `ADE (treated)`. As for the indirect effect, the estimator in `mediate()` is
 only consistent for the direct effect if all confounders have been included in the
 models in `mediate()`. 
   * This estimator is in any case consistent for $\Delta_S$ in the 
-  definition of $PTE_{WT}$ when no baseline covariates have been included.
+  definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
+  are correctly specified.
   * This estimator is in any case consistent for $E\left\{\Delta_S(U) \right\}$ 
-  in the definition of $PTE_{WT}^X$ when baseline covariates have been included.
+  in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
+  are correctly specified.
 * `Total effect`. This estimator is in any case consistent for $\Delta$ because
 treatment is randomized.
 * Proportion mediated, `Prop. Mediated (treated)`. This estimator is the ratio
 of `ACME (treated)` and `Total effect`. 
   * This is a consistent estimator for $PTE_{WT}$ when no baseline covariates 
-  have been included.
+  have been included and the models 
+  are correctly specified.
   * This is a consistent estimator for $PTE_{WT}^X$ when baseline covariates 
-  have been included.
+  have been included and the models 
+  are correctly specified.
 
 ```{r}
 PTE_WT = mediate(
@@ -348,12 +384,64 @@ summary(PTE_WT_X)
 
 ### Interpretation of Estimates
 
-The results are summarized in the following table.
+The relevant results are summarized in the Table \@ref(tab:results-pte). We
+discuss these estimates in turn. Sampling variability is ignored.
 
-```{r}
+* The estimated marginal treatment effect, $\Delta$, quantified by the risk difference, is
+$0.069$ or $0.071$. The estimate changes slightly when ignoring versus including
+baseline covariates. This provides the reference to compare the other quantities
+with.
+* The residual treatment effect, $\Delta_S$, is $-0.015$. Under the conditional 
+independence assumption, $S_0 \perp T_1 | S_1$ and $S_1 \perp T_0 | S_0$, this
+is equal to the *causal residual treatment effect*, $\Delta_{S, c}$. If $S$ is a 
+principal surrogate, then $\Delta_{S, c} = 0$ by Lemma 3.1 in the review paper. 
+  * This quantity **cannot** be interpreted as a direct effect because there is 
+  confounding for the causal effect of $S$ on $T$ by age and general health.
+* The $PTE_{WT}$ is $1.47$. In this context, principal surrogacy may not be exactly satisfied. So,
+$\Delta_{S, c}$ may be close to zero, but not exactly zero. The $PTE_{WT} =
+\frac{\Delta - \Delta_{S, c}}{\Delta}$ provides a natural scale to assess
+closeness to zero. Indeed, closeness to zero is quantified relative to the
+marginal treatment effect.
+  * Under the conditional independence assumption, $S$ is thus not very close
+  to being a principal surrogate.
+* The $E(\Delta_S(X))$ is $0.005$. Because $X$ contains all confounders, this
+is a valid estimate of the interventional direct effect. If we additionally make
+the cross-world independence assumption, this is also a valid estimate of the
+natural direct effect.
+  * The direct effect of treatment is small. Therefore, a large portion of the
+  treatment effect is mediated by the surrogate.
+* The $PTE_{WT}^X$ is $0.870$. Because we have controlled for all confounders in
+the computation of this quantity, this is a valid estimate of the proportion
+mediated. Most of the treatment effect is thus mediated by the surrogate
+endpoint.
 
+```{r results-pte, echo=FALSE}
+results_pte =
+  tibble(
+    "$\\Delta_S$" = PTE_WT$z1,
+    "$\\Delta$" = PTE_WT$tau.coef,
+    "$PTE_{WT}$" = PTE_WT$n1,
+  )
+results_pte_x =
+  tibble(
+    "$E(\\Delta_S(X))$" = PTE_WT_X$z1,
+    "$\\Delta$" = PTE_WT_X$tau.coef,
+    "$PTE_{WT}^X$" = PTE_WT_X$n1,
+  )
+knitr::kable(
+  list(
+    results_pte,
+    results_pte_x
+  ),
+  caption = "Estimates for the proportions explained and related quantities. The first and second table correspond to the analysis ignoring and including baseline covariates, respectively.",
+  escape = FALSE,
+  digits = 3
+)
 ```
 
+
+
+# Application Trials
 
 ```{r}
 eval_trial_tbl  = eval_trial_tbl %>%
@@ -366,15 +454,6 @@ eval_trial_tbl %>%
   pivot_wider(names_from = "Z", values_from = "value") %>%
   mutate(Delta = `1` - `0`)
 ```
-
-
-
-```{r}
-
-```
-
-
-# Application Trials
 
 ## Data Generation
 
