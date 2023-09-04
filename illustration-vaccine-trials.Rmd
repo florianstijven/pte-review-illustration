@@ -599,14 +599,34 @@ This is a particular transformation of $(S, X)$, e.g., $\Tilde{S} = \mu_X (S)$.
 For $PTE_{WT}$ we drop the dependence on $X$.
 
 Under a set of assumptions, $PTE_{WT}$ and $PTE_{WT}^X$ quantify the relative
-discrepancy between the treatment effect on $\Tilde{S}$ and $T$. This is shown
-in Lemma 4.2 in the review paper. In Table
+discrepancy between the treatment effect on $\Tilde{S}$ and $T$. The treatment
+effect on $\Tilde{S}$ is basically a prediction for the treatment effect on
+$T$. This is shown in Lemma 4.2 in the review paper. In Table
 \@ref(tab:application-trial-pte-results), the "true" and predicted treatment
-effects are summarized in both application trials. The predicted treatment effects
-are defined as follows,
+effects are summarized in both application trials. The predicted treatment
+effects are defined as follows,
 $$\Tilde{\Delta}^* = E \left( \mu(S_1) - \mu(S_0) | A = 0 \right)$$
 and
 $$E\left( \Tilde{\Delta}^*(X)  \right) = E \left( \mu_X(S_1) - \mu_X(S_0) | A = 0 \right). $$
+
+When baseline covariates are not included in the prediction rule, we do not
+expect the true and predicted treatment effects to match. Indeed, $PTE_{WT}$ is
+not close to $1$ in the evaluation trial. So, by Lemma 4.1 in the review paper,
+the predicted treatment effect would also have been far away from the true
+treatment effect **in the evaluation trial**. So, we can certainly not expect
+better predictions in application trials. 
+
+In the application trial, we saw that $PTE_{WT}^X \approx 1$. Hence, the
+predicted treatment effect in the application trial matches the true treatment
+effect,
+*when taking baseline covariates into account*. So, good predictions in application
+trials might be possible. Lemma 4.2 tells us under which conditions we can
+expect accurate predictions. These conditions are only satisfied in application
+trial 1. Indeed, the corresponding predicted treatment effect shown in Table
+\@ref(tab:application-trial-pte-results) is $0.051$, which is very close to the
+true treatment effect of $0.053$. In contrast, application trial 2 does not
+satisfy the assumptions of Lemma 4.2. So, we do not expect an accurate
+prediction. The latter is confirmed in Table \@ref(tab:application-trial-pte-results).
 
 ```{r}
 # Combine application trials into a single data set.
