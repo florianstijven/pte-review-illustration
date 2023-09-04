@@ -695,3 +695,23 @@ appl_trials_tbl %>%
 ```
 
 
+### Other Application Trials
+
+The two application trials considered in this document have been cherry-picked
+to illustrate potential pitfalls in using $PTE_{WT}$ and $PTE_{WT}^X$. These two
+trials indeed represent extreme situations. In the first application trial, the
+treatment operated through the same mechanism (neutralizing antibodies) as the
+evaluation trial. The second application trial's treatment operated through a
+very different mechanism, cellular immunity.
+
+Reality is much more complex than presented in this document. Indeed, there
+exist a plethora of different types of neutralizing antibodies. Additionally,
+the same "type" of antibody can potentially be measured by different methods.
+All these factors should be taken into account in the evaluation of the
+assumptions of Lemma 4.2 in the review paper. Indeed, a $PTE_{WT}$ or
+$PTE_{WT}^X$ close to 1 is *some* evidence of surrogacy, but the relevance of
+this result depends on unverifiable extrapolating assumptions. Clearly, this is
+a very difficult endeavor in which no consensus might be reached among
+scientists. The only empirical way forward, is the extension to multiple trials
+as touched upon in the Discussion of the review paper.
+
