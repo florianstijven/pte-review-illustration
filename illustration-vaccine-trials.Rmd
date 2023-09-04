@@ -397,7 +397,7 @@ is equal to the *causal residual treatment effect*, $\Delta_{S, c}$. If $S$ is a
 principal surrogate, then $\Delta_{S, c} = 0$ by Lemma 3.1 in the review paper. 
   * This quantity **cannot** be interpreted as a direct effect because there is 
   confounding for the causal effect of $S$ on $T$ by age and general health.
-* The $PTE_{WT}$ is $1.47$. In this context, principal surrogacy may not be exactly satisfied. So,
+* The $PTE_{WT}$ is $1.47$. In this context, principal surrogacy may not be satisfied exactly. So,
 $\Delta_{S, c}$ may be close to zero, but not exactly zero. The $PTE_{WT} =
 \frac{\Delta - \Delta_{S, c}}{\Delta}$ provides a natural scale to assess
 closeness to zero. Indeed, closeness to zero is quantified relative to the
@@ -435,13 +435,21 @@ knitr::kable(
   ),
   caption = "Estimates for the proportions explained and related quantities. The first and second table correspond to the analysis ignoring and including baseline covariates, respectively.",
   escape = FALSE,
-  digits = 3
+  digits = 3, 
+  booktabs = TRUE
 )
 ```
 
 
 
 # Application Trials
+
+In this section, we introduce two potential application trials. First, the data
+generating model for these trials is explained. Next, we show how the quantities
+estimated in Table \@ref(tab:results-pte) can be interpreted in reference to
+these application trials. Indeed, under a set of assumptions, these quantities
+tell us how good we can predict the treatment effects in new trials using only
+the surrogate endpoint and possibly baseline covariates.
 
 ```{r}
 eval_trial_tbl  = eval_trial_tbl %>%
@@ -455,6 +463,235 @@ eval_trial_tbl %>%
   mutate(Delta = `1` - `0`)
 ```
 
-## Data Generation
+## Data Generating Model
+
+In the following subsection, we discuss the differences between the evaluation
+and application trials. The application trials have $10.000$ patients in each
+treatment arm.
+
+### Application Trial 1
+
+The first application trial is consistent with the selection diagram in
+Figure \@ref(fig:selection-diagram). This application trial thus only differs
+from the evaluation trial in the distribution of the baseline covariates and the
+distribution of $S | Z, X$:
+
+* The population in application trial 1 is older and less healthy than in the 
+evaluation trial.
+  * Age, $X_1 | A = 0 \sim N(40, 7^2)$. 
+  * General health, $X_2 | A = 0 \sim N(1, 5^2)$
+* The control vaccine is assumed to be the same as in the evaluation trial. Therefore,
+we have that $S | Z = 0, X = x, A = 0$ and $S | Z = 0, X = x, A = 1$ are equal
+in distribution for all possible values of $x$. However, the experimental
+vaccine now has a smaller effect on the neutralizing antibody level. Therefore,
+$S | Z, X, A = 0$ is a normal distribution with unit variance and mean $E(S | Z,
+X, A = 0) = 0.75 \cdot Z - 0.05 \cdot (X_1 - 45) + 0.15 \cdot X_2$. 
+
+```{r}
+# Generate observations for the baseline covariates. These distributions differ
+# from those in the evaluation trial.
+age = rnorm(n = 2 * n, mean = 40, sd = 5)
+health = rnorm(n = 2 * n, mean = 2, sd = 4)
+
+# Combine the treatment vector and the baseline covariates into a tibble. Note 
+# that the treatment variables, Z, is the same as for the evaluation trial.
+appl_trial1_tbl = tibble(
+  Z = Z, 
+  age = age,
+  health = health
+)
+# The surrogate endpoint is simulated. the distribution of the surrogate as a
+# function of treatment and baseline covariates is different from the evaluation
+# trial.
+appl_trial1_tbl = appl_trial1_tbl %>%
+  mutate(S = 0.75 * Z - 0.05 * (age - 45) + 0.15 * health + rnorm(n = 2 * n))
+# The true endpoint is simulated as in the evaluation trial.
+appl_trial1_tbl = appl_trial1_tbl %>%
+  mutate(
+    eta = 0.8 + 0.1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
+    infection_free = rbinom(
+      n = 2 * n,
+      size = 1,
+      prob = 1 / (1 + exp(-1 * eta))
+    )
+  )
+# Add more informative variable names and labels.
+appl_trial1_tbl = appl_trial1_tbl %>%
+  mutate(Treatment = factor(
+    Z,
+    levels = 0:1,
+    labels = c("Control", "Experimental")
+  ))
+```
+
+### Application Trial 2
+
+The second application trial is **not** consistent with the selection diagram in
+Figure \@ref(fig:selection-diagram). This application trial differs
+from the evaluation trial in the distribution of the baseline covariates, the
+distribution of $S | Z, X$, and the distribution of $T | Z, X, S$. The latter
+is not allowed by the selection diagram in Figure \@ref(fig:selection-diagram).
+
+* The population in application trial 2 is the same as in application trial 1. So,
+the distribution of baseline covariates is also the same.
+* The control vaccine is assumed to be the same as in the evaluation trial. Therefore,
+we have that $S | Z = 0, X = x, A = 0$ and $S | Z = 0, X = x, A = 1$ are equal
+in distribution for all possible values of $x$. However, the experimental
+vaccine now mainly operates through cellular immunity. This type of immunity has
+not been measured. Therefore, $S | Z, X, A = 0$ is a normal distribution with
+unit variance and mean 
+$E(S | Z, X, A = 0) = 0.3 \cdot Z - 0.05 \cdot (X_1 - 45) + 0.15 \cdot X_2$. 
+Indeed, the treatment effect on the surrogate is now much smaller.
+* Since the experimental vaccine mainly operates through cellular immunity, which was 
+not measured, the direct effect is now important. This is reflected in the distribution 
+of $T | Z, X, S, A = 0$. Indeed, the corresponding mean is
+$$E(T | Z, S, U, A = 0) = expit \left( 1 + 2.5 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2 \right)$$
+
+```{r}
+# Generate observations for the baseline covariates. These distributions are the
+# same as in application trial 1.
+age = rnorm(n = 2 * n, mean = 40, sd = 5)
+health = rnorm(n = 2 * n, mean = 2, sd = 4)
+
+# Combine the treatment vector and the baseline covariates into a tibble. Note 
+# that the treatment variables, Z, is the same as for the evaluation trial.
+appl_trial2_tbl = tibble(
+  Z = Z, 
+  age = age,
+  health = health
+)
+# The surrogate endpoint is simulated. the distribution of the surrogate as a
+# function of treatment and baseline covariates is different from the evaluation
+# trial.
+appl_trial2_tbl = appl_trial2_tbl %>%
+  mutate(S = 0.1 * Z - 0.05 * (age - 45) + 0.15 * health + rnorm(n = 2 * n))
+# The true endpoint is simulated. This conditional distribution differs from the
+# evaluation trial. This is not conssitent with the previoulsy mentioned
+# selection diagram.
+appl_trial2_tbl = appl_trial2_tbl %>%
+  mutate(
+    eta = 1 + 1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
+    infection_free = rbinom(
+      n = 2 * n,
+      size = 1,
+      prob = 1 / (1 + exp(-1 * eta))
+    )
+  )
+# Add more informative variable names and labels.
+appl_trial2_tbl = appl_trial2_tbl %>%
+  mutate(Treatment = factor(
+    Z,
+    levels = 0:1,
+    labels = c("Control", "Experimental")
+  ))
+```
+
+
 
 ## Prediction of Treatment Effects
+
+As explained in the review paper, $PTE_{WT}$ and $PTE_{WT}^X$ each imply a 
+prediction rule $\mu$ and $\mu_X$ for the true endpoint. In the context of the
+application trials, these are prediction rules for the true endpoint, given the
+observed surrogate endpoint and possibly baseline covariates:
+$$\mu(s) = E(T | Z = 1, S = s, A = 1) \text{ and } \mu_x(s) = E(T | Z = 1, S = s, X = x, A = 1)$$
+This is a particular transformation of $(S, X)$, e.g., $\Tilde{S} = \mu_X (S)$. 
+For $PTE_{WT}$ we drop the dependence on $X$.
+
+Under a set of assumptions, $PTE_{WT}$ and $PTE_{WT}^X$ quantify the relative
+discrepancy between the treatment effect on $\Tilde{S}$ and $T$. This is shown
+in Lemma 4.2 in the review paper. In Table
+\@ref(tab:application-trial-pte-results), the "true" and predicted treatment
+effects are summarized in both application trials. The predicted treatment effects
+are defined as follows,
+$$\Tilde{\Delta}^* = E \left( \mu(S_1) - \mu(S_0) | A = 0 \right)$$
+and
+$$E\left( \Tilde{\Delta}^*(X)  \right) = E \left( \mu_X(S_1) - \mu_X(S_0) | A = 0 \right). $$
+
+```{r}
+# Combine application trials into a single data set.
+appl_trials_tbl = 
+  bind_rows(
+    appl_trial1_tbl %>%
+      mutate(Trial = 1L),
+    appl_trial2_tbl %>%
+      mutate(Trial = 2L)
+  )
+# Compute the predicted treatment effects in both application trials.
+appl_trials_tbl = appl_trials_tbl %>%
+  mutate(
+    S_tilde = predict(
+      # Logistic regression model without baseline covariate.
+      true_endpoint_marg_model,
+      newdata = pick(everything()) %>%
+        mutate(Z = 1L), # The prediction rule from the evaluation trial is used.
+      type = "response"
+    ),
+    S_tilde_X = predict(
+      # Logistic regression model with baseline covariates.
+      true_endpoint_model,
+      newdata = pick(everything()) %>%
+        mutate(Z = 1L), # The prediction rule from the evaluation trial is used.
+      type = "response"
+    )
+  )
+```
+
+```{r application-trial-pte-results, echo=FALSE}
+appl_trials_tbl %>%
+  group_by(Treatment, Trial) %>%
+  summarize(
+    prop_infection_free = mean(infection_free),
+    mean_S_tilde = mean(S_tilde),
+    mean_S_tilde_X = mean(S_tilde_X)
+  ) %>%
+  pivot_wider(names_from = Treatment, values_from = 3:5) %>%
+  mutate(
+    "$\\Delta$" = prop_infection_free_Experimental - prop_infection_free_Control,
+    "$\\tilde{\\Delta}^*$" = mean_S_tilde_Experimental - mean_S_tilde_Control,
+    "$E \\left( \\tilde{\\Delta}^*(X) \\right)$" = mean_S_tilde_X_Experimental - mean_S_tilde_X_Control
+  ) %>%
+  dplyr::select(c(1, 8:10)) %>%
+  knitr::kable(digits = 3,
+               escape = FALSE,
+               booktabs = TRUE,
+               caption = "True and predicted treatment effects in the application trials. The mean difference is used as effect measure in this table.")
+```
+
+
+Alternatively, we can look at the results in terms of (predicted) VE. While Lemma
+4.2 still holds for VE as effect measure for $PTE_{WT}$, issues arise for 
+$PTE_{WT}^X$. Indeed, VE is a non-collapsible effect measure. So, the conditional 
+residual effect $\Delta_S(x)$ and its expectation cannot be compared with the 
+marginal treatment effect. In principle, we could redefine the total treatment effect
+as $E(VE(X))$ for allowing for proper comparisons. However, it is unclear how such 
+quantities can be properly interpreted. Therefore, the predicted treatment effects
+are defined as follows,
+$$ \Tilde{VE}^* = 1 - \frac{1 - E \left( \mu(S_1) | A = 0 \right)}{1 - E \left( \mu(S_0) | A = 0 \right)} $$
+and 
+$$ E\left( \Tilde{VE}^*(X)  \right) = 1 - \frac{1 - E \left( \mu_X(S_1) | A = 0 \right)}{1 - E \left( \mu_X(S_0) | A = 0 \right)}. $$
+
+These results are summarized in Table \@ref(tab:application-trial-ve-results). 
+
+```{r application-trial-ve-results, echo=FALSE}
+appl_trials_tbl %>%
+  group_by(Treatment, Trial) %>%
+  summarize(
+    prop_infection_free = mean(infection_free),
+    mean_S_tilde = mean(S_tilde),
+    mean_S_tilde_X = mean(S_tilde_X)
+  ) %>%
+  pivot_wider(names_from = Treatment, values_from = 3:5) %>%
+  mutate(
+    "$VE$" = 1 - (1 - prop_infection_free_Experimental) / (1 - prop_infection_free_Control),
+    "$\\tilde{VE}^*$" = 1 - (1 - mean_S_tilde_Experimental) / (1 - mean_S_tilde_Control),
+    "$E \\left( \\tilde{VE}^*(X) \\right)$" = 1 - (1 - mean_S_tilde_X_Experimental) / (1 - mean_S_tilde_X_Control)
+  ) %>%
+  dplyr::select(c(1, 8:10)) %>%
+  knitr::kable(digits = 3,
+               escape = FALSE,
+               booktabs = TRUE,
+               caption = "True and predicted treatment effects in the application trials. The vaccine efficacy is used as effect measure in this table.")
+```
+
+
