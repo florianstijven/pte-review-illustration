@@ -5,9 +5,9 @@ author:
   - Geert Molenberghs^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
   - Ariel Alonso^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
 output: 
-  bookdown::html_document2:
-  bookdown::pdf_document2:
   bookdown::github_document2:
+  bookdown::pdf_document2:
+  bookdown::html_document2:
 ---
 
 
@@ -342,7 +342,7 @@ included in the models in `mediate()`.
   * This estimator is in any case consistent for $\Delta - \Delta_S$ in the 
   definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
   are correctly specified.
-  * This estimator is in any case consistent for $\Delta - E\left\{\Delta_S(X) \right\}$ 
+  * This estimator is in any case consistent for $\Delta - E \left\{ \Delta_S(X) \right\}$ 
   in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
   are correctly specified.
 * Average direct effect, `ADE (treated)`. As for the indirect effect, the estimator in `mediate()` is
@@ -351,7 +351,7 @@ models in `mediate()`.
   * This estimator is in any case consistent for $\Delta_S$ in the 
   definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
   are correctly specified.
-  * This estimator is in any case consistent for $E\left\{\Delta_S(X) \right\}$ 
+  * This estimator is in any case consistent for $E \left\{ \Delta_S(X) \right\}$ 
   in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
   are correctly specified.
 * `Total effect`. This estimator is in any case consistent for $\Delta$ because

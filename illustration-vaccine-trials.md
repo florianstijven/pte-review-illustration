@@ -346,7 +346,7 @@ then the estimates with `(control)` in their name are obtained.
     the definition of $PTE_{WT}$ when no baseline covariates have been
     included and the models are correctly specified.
   - This estimator is in any case consistent for
-    $\Delta - E\left\{\Delta_S(X) \right\}$ in the definition of
+    $\Delta - E \left\{ \Delta_S(X) \right\}$ in the definition of
     $PTE_{WT}^X$ when baseline covariates have been included and the
     models are correctly specified.
 - Average direct effect, `ADE (treated)`. As for the indirect effect,
@@ -356,7 +356,7 @@ then the estimates with `(control)` in their name are obtained.
     definition of $PTE_{WT}$ when no baseline covariates have been
     included and the models are correctly specified.
   - This estimator is in any case consistent for
-    $E\left\{\Delta_S(X) \right\}$ in the definition of $PTE_{WT}^X$
+    $E \left\{ \Delta_S(X) \right\}$ in the definition of $PTE_{WT}^X$
     when baseline covariates have been included and the models are
     correctly specified.
 - `Total effect`. This estimator is in any case consistent for $\Delta$
