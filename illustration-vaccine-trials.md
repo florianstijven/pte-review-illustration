@@ -281,11 +281,11 @@ larger than 1.
 
 We can also include baseline covariates in the definition of the
 proportion explained. This leads to
-$PTE_{WT}^X = \frac{\Delta - E\left\{\Delta_S(X)\right\}}{\Delta}$ where
+$PTE_{WT}^X = \frac{\Delta - E\left[\Delta_S(X)\right]}{\Delta}$ where
 $$\Delta_S(x) = \int E(T_1 | S_1 = s, X = x, A = 1) - E(T_0 | S_0 = s, X = x,  A = 1) \, d F_{S_0 | X,  A}(s | X = x, a = 1).$$
-If $X$ contains all confounders, $E\left\{ \Delta_S(X) \right\}$
+If $X$ contains all confounders, $E\left[ \Delta_S(X) \right]$
 corresponds to the interventional direct effect and
-$\Delta - E\left\{ \Delta_S(X) \right\}$ to the interventional indirect
+$\Delta - E\left[ \Delta_S(X) \right]$ to the interventional indirect
 effect. Under the additional cross-world independence assumption, these
 effects correspond to their natural counterparts. The ratio of the
 interventional/natural indirect effect and the total effect is
@@ -346,7 +346,7 @@ then the estimates with `(control)` in their name are obtained.
     the definition of $PTE_{WT}$ when no baseline covariates have been
     included and the models are correctly specified.
   - This estimator is in any case consistent for
-    $\Delta - E \left\{ \Delta_S(X) \right\}$ in the definition of
+    $\Delta - E \left[ \Delta_S(X) \right]$ in the definition of
     $PTE_{WT}^X$ when baseline covariates have been included and the
     models are correctly specified.
 - Average direct effect, `ADE (treated)`. As for the indirect effect,
@@ -356,7 +356,7 @@ then the estimates with `(control)` in their name are obtained.
     definition of $PTE_{WT}$ when no baseline covariates have been
     included and the models are correctly specified.
   - This estimator is in any case consistent for
-    $E \left\{ \Delta_S(X) \right\}$ in the definition of $PTE_{WT}^X$
+    $E \left[ \Delta_S(X) \right]$ in the definition of $PTE_{WT}^X$
     when baseline covariates have been included and the models are
     correctly specified.
 - `Total effect`. This estimator is in any case consistent for $\Delta$
