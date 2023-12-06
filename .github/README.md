@@ -1,1 +1,1 @@
-../illustration-vaccine-trials.md
+illustration-vaccine-trials.md
