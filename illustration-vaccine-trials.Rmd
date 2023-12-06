@@ -5,9 +5,9 @@ author:
   - Geert Molenberghs^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
   - Ariel Alonso^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
 output: 
+  bookdown::html_document2:
   bookdown::github_document2:
   bookdown::pdf_document2:
-  bookdown::html_document2:
 ---
 
 
