@@ -1,8 +1,11 @@
 ---
 title: "Application of PTE methods to a Hypothetical Vaccine Trial"
-author: "Florian Stijven"
-date: '`r Sys.Date()`'
+author: 
+  - Florian Stijven^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium, florian.stijven@kuleuven.be]
+  - Geert Molenberghs^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
+  - Ariel Alonso^[KU Leuven - University of Leuven & Universiteit Hasselt, I-BioStat, B-3000 Leuven, Belgium]
 output: 
+  bookdown::html_document2:
   bookdown::pdf_document2:
   bookdown::github_document2:
 ---
@@ -11,11 +14,12 @@ output:
 # Introduction
 
 In this document, the analysis of a set of hypothetical vaccine trials is
-described. This document supplements the review paper of the proportion of treatment
-effect explained (PTE) as a measure of surrogacy. All data in this document are
-hypothetical, but meant to be realistic. The goal of this document is **not** to
-show how different versions of the PTE are estimated in practice. Instead, the
-goal is to illustrate three conceptual points related to the PTE:
+described. This document supplements "Proportion of Treatment Effect Explained:
+An Overview of Interpretations". All concepts discussed in that paper are
+assumed known in this document. All data in this document are hypothetical, but
+meant to be realistic. The goal of this document is **not** to show how
+different versions of the PTE are estimated in practice. Instead, the goal is to
+illustrate three conceptual points regarding the PTE:
 
 1. The PTE can be interpreted in a variety of ways. However, for the PTE to have
 a relevant interpretation, unverifiable assumptions are **always** needed. 
@@ -26,12 +30,13 @@ the desired manner.
 to the potential application trials. The validity of the causal interpretation 
 does not involve assumptions regarding potential application trials.
 
-In this hypothetical scenario, we have data from a single evaluation trial in
+In our hypothetical scenario, we have data from a single evaluation trial in
 which the efficacy of a vaccine is evaluated. In this trial, the occurrence of
-infection in the year after vaccination is the primary endpoint, i.e., the
-true endpoint, $T$. At the same time, the neutralizing antibody level 2 weeks after
-vaccination has been measured. This serves as a potential surrogate endpoint,
-$S$.
+infection in the year after vaccination is the primary endpoint, i.e., the true
+endpoint, $T$. At the same time, the neutralizing antibody level has been
+measured 2 weeks after vaccination. This serves as a potential surrogate
+endpoint, $S$. In this trial, the vaccine operates mainly through inducing an
+antibody response, hence, $S$ is an important mediator.
 
 Independent of the evaluation trial, we consider two potential application
 trials. These are trials in which the results of the previous surrogacy analysis
@@ -44,14 +49,14 @@ may be important differences between trials for the same disease. This also puts
 the spotlight on the reasoning required for justifying the use of a potential
 surrogate endpoint in a new trial, and the potential pitfalls.
 
-The remainder of the document is structured as follows. First, the data
+The remainder of this document is structured as follows. First, the data
 generating model underlying the evaluation trial is explained. For this trial,
 two versions of the PTE are then estimated and interpreted in a causal framework.
 Next, the data generating model underlying the two potential application trials
 is explained. The results of the surrogacy evaluation in the evaluation trial
 are then used to predict the treatment effects in these two application trials
 *using only surrogacy information*. The accuracy of these predictions is then
-related to (violations of) assumptions and the PTE's that were estimated in the
+related to (violations of) assumptions and the PTEs that were estimated in the
 evaluation trial.
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
@@ -87,14 +92,15 @@ effect of vaccination.
 * **X**. This represents the confounding variables for the causal effect of the
 neutralizing antibody level on the infection outcome. In this data generating model, 
 there are only 2 confounding variables. These variables are measured at baseline. 
-  * Age, $X_1$. Older patients tend to have a weaker immune response to vaccination, and
+  * Age, $X_1$. Older patients tend to have a weaker immune response to vaccination and
   are more susceptible to infection.
-  * General health at baseline, $X_2$. Patients in better general health tend to have a 
-  stronger immune response to vaccination, and are less susceptible to infection.
+  * General health at baseline, $X_2$. Patients in better general health
+  (higher $X_2$) tend to have a stronger immune response to vaccination and are
+  less susceptible to infection.
 * **A**. This is the trial indicator where $A = 1$ corresponds to the evaluation
 trial and $A = 0$ corresponds to the application trial. 
 
-```{r selection-diagram, echo=FALSE, fig.cap="Selection diagram underlying the data generating model. The evaluation and first application trial are consistent with this diagram, but the second application trial not.", out.width='50%'}
+```{r selection-diagram, echo=FALSE, fig.cap="Selection diagram underlying the data generating model. The evaluation and first application trial are consistent with this diagram, but the second application trial is not. The assumptions in Lemma 4.2 of the paper are satisfied for trials that are consistent with this selection diagram.", out.width='50%'}
 coords = list(
   x = c(Z = 0, S = 0.5, `T` = 1, X = 1.25, A = 0.75),
   y = c(Z = 0, S = 0.75, `T` = 0, X = 0.75, A = 1.5)
@@ -142,8 +148,8 @@ comparison with the application trials, see further).
 (in comparison with the application trials, see further).
 
 Because of randomization, these two variables are independent of the treatment
-variable. However, the distribution of these variables changes in the application
-trials.
+variable. However, the distribution of these variables is different in the
+application trials.
 
 ```{r}
 # Generate observations for the baseline covariates.
@@ -175,15 +181,16 @@ eval_trial_tbl = eval_trial_tbl %>%
 
 ### Infection Status, $T$
 
-The true endpoint is a binary endpoint that depends on the treatment, the antibody
-levels, and the baseline covariates. Its distribution is completely determined by
-the mean, which depends on the mentioned variables in the following way,
+The true endpoint is a binary endpoint that depends on the treatment, the
+neutralizing antibody level, and the baseline covariates. Its distribution is
+completely determined by the mean, which depends on the mentioned variables in
+the following way,
 
-$$E(T|Z, S, U, A = 1) = expit(1 + 0.1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2).$$ 
+$$E(T|Z, S, X, A = 1) = expit(0.8 + 0.1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2).$$ 
 ```{r}
-# The true endpoint is simulated in two steps. First, the mean as function of the
-# covariates is computed. Given this conditional mean, the true endpoint is sampled
-# from a Bernoulli distribution.
+# The true endpoint is simulated in two steps. First, the logit(mean) as a
+# linear function of the covariates is computed. Given this conditional mean,
+# the true endpoint is sampled from a Bernoulli distribution.
 eval_trial_tbl = eval_trial_tbl %>%
   mutate(
     eta = 0.8 + 0.1 * Z + 0.5 * S - 0.03 * (age - 45) + 0.1 * health,
@@ -195,7 +202,7 @@ eval_trial_tbl = eval_trial_tbl %>%
   )
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Add more informative variable names and labels.
 eval_trial_tbl = eval_trial_tbl %>%
   mutate(Treatment = factor(
@@ -211,11 +218,11 @@ eval_trial_tbl = eval_trial_tbl %>%
 
 In this subsection, we first do several simple analyses of the evaluation trial
 that will help us to interpret the results regarding the PTE. Key concepts
-regarding the PTE in the review paper are also repeated for completeness. Next,
-two versions of the PTE are estimated for these data: (i) the "usual" PTE that
-ignores baseline covariates, $PTE_{WT}$, and (ii) the PTE that does take into
-account baseline covariates, $PTE_{WT}^X$. These estimates are then interpreted
-in the causal frameworks discussed in the paper.
+regarding the PTE, which are discussed in the paper, are repeated here for
+completeness. Next, two versions of the PTE are estimated with these data: (i)
+the "usual" PTE that ignores baseline covariates, $PTE_{WT}$, and (ii) the PTE
+that does take into account baseline covariates, $PTE_{WT}^X$. These estimates
+are then interpreted in the causal frameworks discussed in the paper.
 
 ### Preliminaries
 
@@ -232,7 +239,7 @@ eval_trial_prop1 = mean(eval_trial_tbl$infection_free[eval_trial_tbl$Z == 1])
 The proportions infection-free
 in the control and experimental groups are, respectively, `r round(eval_trial_prop0, 3)` and 
 `r round(eval_trial_prop1, 3)`. The risk difference is thus `r round(eval_trial_prop1 - eval_trial_prop0, 3)`.
-In this context, the treatment effect is often summarized in the vaccine efficacy (VE),
+In this context, the treatment effect is often summarized in the vaccine efficacy (VE):
 $VE = 1 - RR$ where $RR$ is the relative risk of infection in the experimental vs
 control group. The VE in this trial is `r round( 1 - (1 - eval_trial_prop1) / (1 - eval_trial_prop0), 3)`.
 
@@ -265,7 +272,9 @@ eval_trial_tbl %>%
   geom_smooth(aes(x = S, y = infection_free, color = Treatment), se = FALSE) + 
   geom_density(aes(x = S, color = Treatment)) +
   xlim(c(-2.5, 7.5)) + 
-  theme_bw()
+  theme_bw() +
+  ylab("Proportion Infection-Free") +
+  xlab("Neutralizing Antibody Level")
 ```
 
 These regression functions differ between the treatment groups. Indeed,
@@ -274,18 +283,18 @@ group for all values of $S$. Hence, $PTE_{WT}$ will be larger than 1.
 
 We can also include baseline covariates in the definition of the proportion explained.
 This leads to $PTE_{WT}^X = \frac{\Delta - E\left\{\Delta_S(X)\right\}}{\Delta}$ where
-$$\Delta_S(x) = \int E(T_1 | S_1 = s, X = x, A = 1) - E(T_0 | S_0 = s, X = x,  A = 1) \, d F_{S_0 | A}(s | a = 1).$$
-When $X$ contains all confounders, then $E\left\{ \Delta_S(X) \right\}$
+$$\Delta_S(x) = \int E(T_1 | S_1 = s, X = x, A = 1) - E(T_0 | S_0 = s, X = x,  A = 1) \, d F_{S_0 | X,  A}(s | X = x, a = 1).$$
+If $X$ contains all confounders, $E\left\{ \Delta_S(X) \right\}$
 corresponds to the interventional direct effect and
 $\Delta - E\left\{ \Delta_S(X) \right\}$ to the interventional indirect effect. Under the additional
 cross-world independence assumption, these effects correspond to their natural
 counterparts. The ratio of the interventional/natural indirect effect and the
-total effect is classically termed the proportion mediated. As for the PTE, this
-is actually is misnomer because it is not a proportion.
+total effect is classically termed the proportion mediated. As for the PTE, the
+*proportion* mediated is actually a misnomer because it is not a proportion.
 
-### Estimation of PTE
+### Estimation of the PTE
 
-As explained in Appendix E of the paper, $PTE_{WT}$ can be estimated with
+As explained in Appendix E of the review paper, the $PTE_{WT}$ can be estimated with
 existing software for causal mediation analysis. In this document, we use the
 `mediate()` function from the `mediation` package for this purpose. For a
 conventional mediation analysis, this function relies on two regression models.
@@ -301,14 +310,15 @@ include baseline covariates.
 
 The corresponding models are fitted in turn next. For the surrogate, we choose a
 linear regression model. For the true endpoint, we choose a logistic regression
-model. When we include the baseline covariates in these models, they are
-correctly specified. However, the logistic regression model is misspecified when
-we do not include the baseline covariates.
+model. When we include the baseline covariates in these models, the models will
+be correctly specified. However, the logistic regression model will be
+misspecified when we do not include the baseline covariates.
 
 ```{r}
 # Fit the models that do not include the baseline covariates.
 surrogate_marg_model = lm(S ~ Z, data = eval_trial_tbl)
-true_endpoint_marg_model = glm(infection_free ~ Z + S, data = eval_trial_tbl,
+true_endpoint_marg_model = glm(infection_free ~ Z + S,
+                               data = eval_trial_tbl,
                                family = binomial())
 # Fit the models that include the baseline covariates.
 surrogate_model = lm(S ~ Z + age + health, data = eval_trial_tbl)
@@ -317,7 +327,7 @@ true_endpoint_model = glm(infection_free ~ Z + S + age + health,
                           family = binomial())
 ```
 
-We can now estimate $PTE_{WT}$ and $PTE_{WT}^X$. This is done in the two next
+We can now estimate $PTE_{WT}$ and $PTE_{WT}^X$. This is done in the following 2
 code chunks. For completeness, we call the summary method on the object returned
 by `mediate()`. This method returns numerous estimates, which are discussed in
 turn. We only focus on the estimates with `(treated)` in their name. These
@@ -332,7 +342,7 @@ included in the models in `mediate()`.
   * This estimator is in any case consistent for $\Delta - \Delta_S$ in the 
   definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
   are correctly specified.
-  * This estimator is in any case consistent for $\Delta - E\left\{\Delta_S(U) \right\}$ 
+  * This estimator is in any case consistent for $\Delta - E\left\{\Delta_S(X) \right\}$ 
   in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
   are correctly specified.
 * Average direct effect, `ADE (treated)`. As for the indirect effect, the estimator in `mediate()` is
@@ -341,7 +351,7 @@ models in `mediate()`.
   * This estimator is in any case consistent for $\Delta_S$ in the 
   definition of $PTE_{WT}$ when no baseline covariates have been included and the models 
   are correctly specified.
-  * This estimator is in any case consistent for $E\left\{\Delta_S(U) \right\}$ 
+  * This estimator is in any case consistent for $E\left\{\Delta_S(X) \right\}$ 
   in the definition of $PTE_{WT}^X$ when baseline covariates have been included and the models 
   are correctly specified.
 * `Total effect`. This estimator is in any case consistent for $\Delta$ because
@@ -389,7 +399,7 @@ discuss these estimates in turn. Sampling variability is ignored.
 
 * The estimated marginal treatment effect, $\Delta$, quantified by the risk difference, is
 $0.069$ or $0.071$. The estimate changes slightly when ignoring versus including
-baseline covariates. This provides the reference to compare the other quantities
+baseline covariates. This provides the reference to compare the other estimates
 with.
 * The residual treatment effect, $\Delta_S$, is $-0.015$. Under the conditional 
 independence assumption, $S_0 \perp T_1 | S_1$ and $S_1 \perp T_0 | S_0$, this
@@ -419,21 +429,21 @@ endpoint.
 results_pte =
   tibble(
     "$\\Delta_S$" = PTE_WT$z1,
-    "$\\Delta$" = PTE_WT$tau.coef,
+    "$\\Delta_1$" = PTE_WT$tau.coef,
     "$PTE_{WT}$" = PTE_WT$n1,
   )
 results_pte_x =
   tibble(
     "$E(\\Delta_S(X))$" = PTE_WT_X$z1,
-    "$\\Delta$" = PTE_WT_X$tau.coef,
+    "$\\Delta_2$" = PTE_WT_X$tau.coef,
     "$PTE_{WT}^X$" = PTE_WT_X$n1,
   )
 knitr::kable(
-  list(
+  bind_cols(
     results_pte,
     results_pte_x
   ),
-  caption = "Estimates for the proportions explained and related quantities. The first and second table correspond to the analysis ignoring and including baseline covariates, respectively.",
+  caption = "Estimates for the proportions explained and related quantities. $\\Delta_1$ and $\\Delta_2$ are the estimates for marginal treatment effect, ignoring and including the baseline covariates, respectively.",
   escape = FALSE,
   digits = 3, 
   booktabs = TRUE
@@ -445,29 +455,17 @@ knitr::kable(
 # Application Trials
 
 In this section, we introduce two potential application trials. First, the data
-generating model for these trials is explained. Next, we show how the quantities
-estimated in Table \@ref(tab:results-pte) can be interpreted in reference to
-these application trials. Indeed, under a set of assumptions, these quantities
-tell us how good we can predict the treatment effects in new trials using only
+generating model for these trials is explained. Next, we show how the estimates 
+in Table \@ref(tab:results-pte) can be interpreted in reference to
+these application trials. Indeed, under a set of assumptions, these estimates
+tell us how good we can predict treatment effects in new trials using only
 the surrogate endpoint and possibly baseline covariates.
-
-```{r}
-eval_trial_tbl  = eval_trial_tbl %>%
-  mutate(S_tilde = predict(true_endpoint_model, newdata = eval_trial_tbl %>%
-                             mutate(Z = 1), type = "response"))
-eval_trial_tbl %>%
-  group_by(Z) %>%
-  summarize(predicted_proportion = mean(S_tilde), proportion = mean(infection_free)) %>%
-  pivot_longer(cols = 2:3) %>%
-  pivot_wider(names_from = "Z", values_from = "value") %>%
-  mutate(Delta = `1` - `0`)
-```
 
 ## Data Generating Model
 
-In the following subsection, we discuss the differences between the evaluation
-and application trials. The application trials have $10.000$ patients in each
-treatment arm.
+In this subsection, we discuss the differences between the evaluation and
+application trials. As in the evaluation trial, the application trials have
+$10.000$ patients in each treatment arm.
 
 ### Application Trial 1
 
@@ -478,8 +476,8 @@ distribution of $S | Z, X$:
 
 * The population in application trial 1 is older and less healthy than in the 
 evaluation trial.
-  * Age, $X_1 | A = 0 \sim N(40, 7^2)$. 
-  * General health, $X_2 | A = 0 \sim N(1, 5^2)$
+  * Age, $X_1 | A = 0 \sim N(40, 5^2)$. 
+  * General health, $X_2 | A = 0 \sim N(2, 4^2)$
 * The control vaccine is assumed to be the same as in the evaluation trial. Therefore,
 we have that $S | Z = 0, X = x, A = 0$ and $S | Z = 0, X = x, A = 1$ are equal
 in distribution for all possible values of $x$. However, the experimental
@@ -494,13 +492,13 @@ age = rnorm(n = 2 * n, mean = 40, sd = 5)
 health = rnorm(n = 2 * n, mean = 2, sd = 4)
 
 # Combine the treatment vector and the baseline covariates into a tibble. Note 
-# that the treatment variables, Z, is the same as for the evaluation trial.
+# that the treatment variable, Z, is the same as for the evaluation trial.
 appl_trial1_tbl = tibble(
   Z = Z, 
   age = age,
   health = health
 )
-# The surrogate endpoint is simulated. the distribution of the surrogate as a
+# The surrogate endpoint is simulated. The distribution of the surrogate as a
 # function of treatment and baseline covariates is different from the evaluation
 # trial.
 appl_trial1_tbl = appl_trial1_tbl %>%
@@ -535,17 +533,18 @@ is not allowed by the selection diagram in Figure \@ref(fig:selection-diagram).
 * The population in application trial 2 is the same as in application trial 1. So,
 the distribution of baseline covariates is also the same.
 * The control vaccine is assumed to be the same as in the evaluation trial. Therefore,
-we have that $S | Z = 0, X = x, A = 0$ and $S | Z = 0, X = x, A = 1$ are equal
-in distribution for all possible values of $x$. However, the experimental
+we again have that $S | Z = 0, X = x, A = 0$ and $S | Z = 0, X = x, A = 1$ are
+equal in distribution for all possible values of $x$. However, the experimental
 vaccine now mainly operates through cellular immunity. This type of immunity has
 not been measured. Therefore, $S | Z, X, A = 0$ is a normal distribution with
 unit variance and mean 
-$E(S | Z, X, A = 0) = 0.3 \cdot Z - 0.05 \cdot (X_1 - 45) + 0.15 \cdot X_2$. 
-Indeed, the treatment effect on the surrogate is now much smaller.
+$E(S | Z, X, A = 0) = 0.1 \cdot Z - 0.05 \cdot (X_1 - 45) + 0.15 \cdot X_2$. 
+Indeed, the treatment effect on the surrogate is now much
+smaller.
 * Since the experimental vaccine mainly operates through cellular immunity, which was 
 not measured, the direct effect is now important. This is reflected in the distribution 
 of $T | Z, X, S, A = 0$. Indeed, the corresponding mean is
-$$E(T | Z, S, U, A = 0) = expit \left( 1 + 2.5 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2 \right)$$
+$$E(T | Z, S, X, A = 0) = expit \left( 1 + 1 \cdot Z + 0.5 \cdot S - 0.03 \cdot (X_1 - 45) + 0.1 \cdot X_2 \right)$$
 
 ```{r}
 # Generate observations for the baseline covariates. These distributions are the
@@ -554,19 +553,19 @@ age = rnorm(n = 2 * n, mean = 40, sd = 5)
 health = rnorm(n = 2 * n, mean = 2, sd = 4)
 
 # Combine the treatment vector and the baseline covariates into a tibble. Note 
-# that the treatment variables, Z, is the same as for the evaluation trial.
+# that the treatment variable, Z, is the same as for the evaluation trial.
 appl_trial2_tbl = tibble(
   Z = Z, 
   age = age,
   health = health
 )
-# The surrogate endpoint is simulated. the distribution of the surrogate as a
+# The surrogate endpoint is simulated. The distribution of the surrogate as a
 # function of treatment and baseline covariates is different from the evaluation
 # trial.
 appl_trial2_tbl = appl_trial2_tbl %>%
   mutate(S = 0.1 * Z - 0.05 * (age - 45) + 0.15 * health + rnorm(n = 2 * n))
 # The true endpoint is simulated. This conditional distribution differs from the
-# evaluation trial. This is not conssitent with the previoulsy mentioned
+# evaluation trial. This is not consistent with the previously mentioned
 # selection diagram.
 appl_trial2_tbl = appl_trial2_tbl %>%
   mutate(
@@ -590,69 +589,80 @@ appl_trial2_tbl = appl_trial2_tbl %>%
 
 ## Prediction of Treatment Effects
 
-As explained in the review paper, $PTE_{WT}$ and $PTE_{WT}^X$ each imply a 
+As explained in the paper, $PTE_{WT}$ and $PTE_{WT}^X$ each imply a 
 prediction rule $\mu$ and $\mu_X$ for the true endpoint. In the context of the
 application trials, these are prediction rules for the true endpoint, given the
 observed surrogate endpoint and possibly baseline covariates:
-$$\mu(s) = E(T | Z = 1, S = s, A = 1) \text{ and } \mu_x(s) = E(T | Z = 1, S = s, X = x, A = 1)$$
-This is a particular transformation of $(S, X)$, e.g., $\Tilde{S} = \mu_X (S)$. 
-For $PTE_{WT}$ we drop the dependence on $X$.
+$$\mu(s) = E(T_1 | S_1 = s, A = 1) \text{ and } \mu_x(s) = E(T_1 | S_1 = s, X = x, A = 1).$$
+The above functions are, respectively, transformations of $S$ and $(S, X)'$:
+$\tilde{S} = \mu(S)$ and $\tilde{S}_X = \mu_X (S)$.
 
-Under a set of assumptions, $PTE_{WT}$ and $PTE_{WT}^X$ quantify the relative
-discrepancy between the treatment effect on $\Tilde{S}$ and $T$. The treatment
-effect on $\Tilde{S}$ is basically a prediction for the treatment effect on
-$T$. This is shown in Lemma 4.2 in the review paper. In Table
+Under a set of assumptions, $PTE_{WT}$ ($PTE_{WT}^X$) quantifies the relative
+discrepancy between the treatment effect on $\tilde{S}$ ($\tilde{S}_X$) and on $T$
+*in the evaluation trial*. This is shown in Lemma 4.1 in the paper.
+Therefore, the treatment effect on $\tilde{S}$ ($\tilde{S}_X$) is an accurate
+prediction for the treatment effect on $T$ *in the evaluation trial* when
+$PTE_{WT} \approx 1$ ($PTE_{WT}^X \approx 1$). In Lemma 4.2, it is shown that
+$PTE_{WT}$ ($PTE_{WT}^X$) also quantifies the error in these predictions for
+**new trials** under additional assumptions. In Table
 \@ref(tab:application-trial-pte-results), the "true" and predicted treatment
-effects are summarized in both application trials. The predicted treatment
+effects are summarized for both application trials. The predicted treatment
 effects are defined as follows,
-$$\Tilde{\Delta}^* = E \left( \mu(S_1) - \mu(S_0) | A = 0 \right)$$
+$$\tilde{\Delta}^* = E \left( \mu(S_1) - \mu(S_0) | A = 0 \right)$$
 and
-$$E\left( \Tilde{\Delta}^*(X)  \right) = E \left( \mu_X(S_1) - \mu_X(S_0) | A = 0 \right). $$
+$$E\left( \tilde{\Delta}^*(X)  \right) = E \left( \mu_X(S_1) - \mu_X(S_0) | A = 0 \right),$$
+where unknown quantities are replaced with their estimates.
 
 When baseline covariates are not included in the prediction rule, we do not
-expect the true and predicted treatment effects to match. Indeed, $PTE_{WT}$ is
-not close to $1$ in the evaluation trial. So, by Lemma 4.1 in the review paper,
-the predicted treatment effect would also have been far away from the true
-treatment effect **in the evaluation trial**. So, we can certainly not expect
-better predictions in application trials. 
+expect the true and the predicted treatment effects to match. Indeed, $PTE_{WT}$
+is not close to $1$ in the evaluation trial (see Table \@ref(tab:results-pte)).
+So, by Lemma 4.1, the predicted treatment effect in the evaluation trial, using
+a prediction rule estimated in that same trial, is not accurate. Therefore, we should
+**not** expect better predictions in application trials. This is confirmed
+by the estimates in Table \@ref(tab:application-trial-pte-results).
 
-In the application trial, we saw that $PTE_{WT}^X \approx 1$. Hence, the
-predicted treatment effect in the application trial matches the true treatment
+In the evaluation trial, we saw that $PTE_{WT}^X \approx 1$. Hence, the
+predicted treatment effect in the evaluation trial matches the true treatment
 effect,
 *when taking baseline covariates into account*. So, good predictions in application
-trials might be possible. Lemma 4.2 tells us under which conditions we can
-expect accurate predictions. These conditions are only satisfied in application
-trial 1. Indeed, the corresponding predicted treatment effect shown in Table
+trials *might be* possible. Lemma 4.2 tells us under which conditions we can
+expect accurate predictions in new trials. These conditions are only satisfied
+in application trial 1 conditional on baseline covariates. Indeed, the
+corresponding predicted treatment effect shown in Table
 \@ref(tab:application-trial-pte-results) is $0.051$, which is very close to the
 true treatment effect of $0.053$. In contrast, application trial 2 does not
 satisfy the assumptions of Lemma 4.2. So, we do not expect an accurate
-prediction. The latter is confirmed in Table \@ref(tab:application-trial-pte-results).
+prediction. The latter is confirmed in Table
+\@ref(tab:application-trial-pte-results).
 
 ```{r}
 # Combine application trials into a single data set.
 appl_trials_tbl = 
   bind_rows(
     appl_trial1_tbl %>%
-      mutate(Trial = 1L),
+      mutate(Trial = "Application Trial 1"),
     appl_trial2_tbl %>%
-      mutate(Trial = 2L)
+      mutate(Trial = "Application Trial 2")
   )
 # Compute the predicted treatment effects in both application trials.
 appl_trials_tbl = appl_trials_tbl %>%
   mutate(
     S_tilde = predict(
-      # Logistic regression model without baseline covariate.
+      # Logistic regression model without baseline covariates. This model gives us
+      # the prediction rule for the true endpoint, given the surrogate.
       true_endpoint_marg_model,
       newdata = pick(everything()) %>%
         mutate(Z = 1L), # The prediction rule from the evaluation trial is used.
-      type = "response"
+      type = "response" # Prediction on the probability scale.
     ),
     S_tilde_X = predict(
-      # Logistic regression model with baseline covariates.
+      # Logistic regression model with baseline covariates. This models gives us
+      # the prediction rule for the true endpoint, given the surrogate and
+      # baseline covariates (age and health).
       true_endpoint_model,
       newdata = pick(everything()) %>%
         mutate(Z = 1L), # The prediction rule from the evaluation trial is used.
-      type = "response"
+      type = "response" # Prediction on the probability scale.
     )
   )
 ```
@@ -680,18 +690,24 @@ appl_trials_tbl %>%
 
 
 Alternatively, we can look at the results in terms of (predicted) VE. While Lemma
-4.2 still holds for VE as effect measure for $PTE_{WT}$, issues arise for 
+4.2 still holds for VE as effect measure for the $PTE_{WT}$, issues arise for 
 $PTE_{WT}^X$. Indeed, VE is a non-collapsible effect measure. So, the conditional 
 residual effect $\Delta_S(x)$ and its expectation cannot be compared with the 
 marginal treatment effect. In principle, we could redefine the total treatment effect
-as $E(VE(X))$ for allowing for proper comparisons. However, it is unclear how such 
+as $E(VE(X))$ to allow for proper comparisons. However, it is unclear how such 
 quantities can be properly interpreted. Therefore, the predicted treatment effects
-are defined as follows,
-$$ \Tilde{VE}^* = 1 - \frac{1 - E \left( \mu(S_1) | A = 0 \right)}{1 - E \left( \mu(S_0) | A = 0 \right)} $$
+are redefined as follows,
+$$ \tilde{VE}^* = 1 - \frac{1 - E \left( \mu(S_1) | A = 0 \right)}{1 - E \left( \mu(S_0) | A = 0 \right)} $$
 and 
-$$ E\left( \Tilde{VE}^*(X)  \right) = 1 - \frac{1 - E \left( \mu_X(S_1) | A = 0 \right)}{1 - E \left( \mu_X(S_0) | A = 0 \right)}. $$
+$$  \tilde{VE}_{EX}^* = 1 - \frac{1 - E \left( \mu_X(S_1) | A = 0 \right)}{1 - E \left( \mu_X(S_0) | A = 0 \right)}. $$
+As before, we merely replace $T$ with a prediction of $T$ in the definition
+of the effect measure.
 
-These results are summarized in Table \@ref(tab:application-trial-ve-results). 
+These results are summarized in Table \@ref(tab:application-trial-ve-results).
+These results are very much in line with Table
+\@ref(tab:application-trial-pte-results). This shows that good predictions of
+the treatment effect on one scale, can translate to good predictions of the
+treatment effect on another scale.
 
 ```{r application-trial-ve-results, echo=FALSE}
 appl_trials_tbl %>%
@@ -705,7 +721,7 @@ appl_trials_tbl %>%
   mutate(
     "$VE$" = 1 - (1 - prop_infection_free_Experimental) / (1 - prop_infection_free_Control),
     "$\\tilde{VE}^*$" = 1 - (1 - mean_S_tilde_Experimental) / (1 - mean_S_tilde_Control),
-    "$E \\left( \\tilde{VE}^*(X) \\right)$" = 1 - (1 - mean_S_tilde_X_Experimental) / (1 - mean_S_tilde_X_Control)
+    "$\\tilde{VE}_{EX}^*$" = 1 - (1 - mean_S_tilde_X_Experimental) / (1 - mean_S_tilde_X_Control)
   ) %>%
   dplyr::select(c(1, 8:10)) %>%
   knitr::kable(digits = 3,
@@ -715,23 +731,68 @@ appl_trials_tbl %>%
 ```
 
 
-### Other Application Trials
+## Other Application Trials
 
 The two application trials considered in this document have been cherry-picked
-to illustrate potential pitfalls in using $PTE_{WT}$ and $PTE_{WT}^X$. These two
-trials indeed represent extreme situations. In the first application trial, the
-treatment operated through the same mechanism (neutralizing antibodies) as the
-evaluation trial. The second application trial's treatment operated through a
-very different mechanism, cellular immunity.
+to illustrate potential pitfalls in using $PTE_{WT}$ and $PTE_{WT}^X$ as
+measures of surrogacy. These two trials indeed represent extreme situations. In
+the first application trial, the treatment operated through the same mechanism
+(neutralizing antibodies) as the evaluation trial. The second application
+trial's treatment operated through a very different mechanism: cellular
+immunity.
 
-Reality is much more complex than presented in this document. Indeed, there
-exist a plethora of different types of neutralizing antibodies. Additionally,
-the same "type" of antibody can potentially be measured by different methods.
-All these factors should be taken into account in the evaluation of the
-assumptions of Lemma 4.2 in the review paper. Indeed, a $PTE_{WT}$ or
-$PTE_{WT}^X$ close to 1 is *some* evidence of surrogacy, but the relevance of
-this result depends on unverifiable extrapolating assumptions. Clearly, this is
-a very difficult endeavor in which no consensus might be reached among
-scientists. The only empirical way forward, is the extension to multiple trials
-as touched upon in the Discussion of the review paper.
+Reality is much more complex than these two application trials might suggest.
+Many application trials will arguably be situated in between the above two
+extremes. Indeed, there exist a plethora of different types of neutralizing
+antibodies. Additionally, the same "type" of antibody can potentially be
+measured by different methods. All these factors should be taken into account in
+the evaluation of the assumptions of Lemma 4.2 in the paper. Indeed, a
+$PTE_{WT}$ or $PTE_{WT}^X$ close to 1 is *some* evidence of surrogacy, but the
+relevance of this result depends heavily on unverifiable extrapolating assumptions.
+Clearly, this is a very difficult endeavor in which no consensus might be
+reached among scientists. The only empirical way forward is the extension to
+multiple trials as touched upon in the Discussion of the paper.
+
+# Conclusion
+
+In this document, we have generated three vaccine trials. The first trial is the
+evaluation trial. In the evaluation trial, the estimates for $PTE_{WT}$ and
+$PTE_{WT}^X$ differ considerably; only the latter is close to 1. At the same
+time, both estimates can be given a valid causal interpretation in this trial.
+Indeed, $PTE_{WT}$ quantifies the degree of principal surrogacy *under the
+conditional independence assumption*. However, it is not a valid estimate for
+the proportion mediated because there is confounding that has not been adjusted
+for. In contrast, the estimate for $PTE_{WT}^X$ in the evaluation trial is a
+valid estimate for the proportion mediated because there is no unmeasured
+confounding. The proportion mediated is close to 1 in the evaluation trial. This
+means that the treatment decreases the probability of infection primarily by
+increasing the neutralizing antibody level. Even though these estimates
+correspond to well-defined causal quantities, it is unclear how these results
+translate to new trials.
+
+
+Besides a causal interpretation, $PTE_{WT}$ and $PTE_{WT}^X$ also have a
+non-causal interpretation that is related to the prediction of treatment effects
+using only surrogate information. These two proportions explained correspond to
+a prediction rule for the true endpoint given the surrogate (and possibly
+baseline covariates). Indeed, Lemma 4.1 shows us that these proportions
+explained quantify how accurate the treatment effect on $T$ is predicted by the
+respective prediction rules. Lemma 4.2 states the conditions under which
+$PTE_{WT}$ and $PTE_{WT}^X$ quantify how accurate the same prediction rules
+predict the treatment effect on $T$ in the application trial. The results in
+Tables \@ref(tab:application-trial-pte-results) and
+\@ref(tab:application-trial-ve-results) show how the predictions can fail when
+these assumptions do not hold.
+
+As shown in this document, $PTE_{WT} \approx 1$ and/or $PTE_{WT}^X \approx 1$
+does not guarantee accurately predicted treatment effects in new trials.
+However, we can
+*empirically* evaluate the extrapolating assumptions by considering multiple
+trials. Indeed, a single prediction rule can be estimated using one or more
+trials. Next, this prediction rule leads to multiple predicted treatment effects
+and corresponding prediction errors. There is now replication of the prediction
+errors, so formal statistical inference regarding the accuracy of predictions
+(in new unobserved trials) is possible.
+
+
 
